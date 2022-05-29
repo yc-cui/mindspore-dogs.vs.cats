@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score
 from mindspore import context, save_checkpoint
 from utils.model_utils import setup_seed
 from tqdm import tqdm
-from nets.googlenet import GoogLeNet
+from nets.inceptionv3 import InceptionV3
 from utils.dataset_utils import create_dataset
 import os
 
@@ -21,22 +21,22 @@ context.set_context(mode=context.GRAPH_MODE, device_target=device_target)
 # context.set_context(mode=context.PYNATIVE_MODE, device_target=device_target)
 
 
-class GoogLeNetModel:
+class InceptionV3Model:
     def __init__(self, opt):
         self.opt = opt
         self.model_name = "model_{}".format(self.opt.MODEL.NAME)
 
         batch_list = [8, 16, 32]
-        self.train_set_dict = {i: create_dataset(self.opt.TRAIN.TRAIN_LIST, 224, train=True, batch_size=i, shuffle=False) for i in batch_list}
+        self.train_set_dict = {i: create_dataset(self.opt.TRAIN.TRAIN_LIST, 299, train=True, batch_size=i, shuffle=False) for i in batch_list}
         self.train_set_iter_dict = {k: v.create_dict_iterator() for k, v in self.train_set_dict.items()}
 
-        self.eval_train_set = create_dataset(self.opt.TRAIN.TRAIN_LIST, 224, train=False, batch_size=64, shuffle=False)
-        self.eval_test_set = create_dataset(self.opt.TRAIN.TEST_LIST, 224, train=False, batch_size=64, shuffle=False)
+        self.eval_train_set = create_dataset(self.opt.TRAIN.TRAIN_LIST, 299, train=False, batch_size=64, shuffle=False)
+        self.eval_test_set = create_dataset(self.opt.TRAIN.TEST_LIST, 299, train=False, batch_size=64, shuffle=False)
         self.eval_train_set_iter = self.eval_train_set.create_dict_iterator()
         self.eval_test_iter = self.eval_test_set.create_dict_iterator()
 
-        self.net = GoogLeNet(2)
-        self.global_max_acc = 0.9468
+        self.net = InceptionV3(2)
+        self.global_max_acc = 0
 
 
 
@@ -96,9 +96,9 @@ class GoogLeNetModel:
                 if test_acc > max_acc:
                     max_acc = test_acc
                     print("max test acc: ", max_acc)
-                    print("global max test acc: ", self.global_max_acc)
                     if max_acc > self.global_max_acc:
                         self.global_max_acc = max_acc
+                        print("global max test acc: ", self.global_max_acc)
                         self.save_checkpoints()
 
                 if self.opt.WANDB.OPEN:
@@ -110,7 +110,7 @@ class GoogLeNetModel:
         with open(self.opt.WANDB.SWEEP_CONFIG, encoding="utf-8") as f:
             self.sweep_config = json.load(f)
         f.close()
-        sweep_id = wandb.sweep(self.sweep_config["googlenet"]["sweep_config"], project=self.opt.WANDB.PROJECT_NAME)
+        sweep_id = wandb.sweep(self.sweep_config["inceptionv3"]["sweep_config"], project=self.opt.WANDB.PROJECT_NAME)
         wandb.agent(sweep_id, self.run_sweep)
 
     def eval(self, data_iter):

@@ -21,7 +21,7 @@ context.set_context(mode=context.GRAPH_MODE, device_target=device_target)
 # context.set_context(mode=context.PYNATIVE_MODE, device_target=device_target)
 
 
-class GoogLeNetModel:
+class GoogLeNetModel_imp:
     def __init__(self, opt):
         self.opt = opt
         self.model_name = "model_{}".format(self.opt.MODEL.NAME)
@@ -36,7 +36,7 @@ class GoogLeNetModel:
         self.eval_test_iter = self.eval_test_set.create_dict_iterator()
 
         self.net = GoogLeNet(2)
-        self.global_max_acc = 0.9468
+        self.global_max_acc = 0
 
 
 
@@ -96,9 +96,9 @@ class GoogLeNetModel:
                 if test_acc > max_acc:
                     max_acc = test_acc
                     print("max test acc: ", max_acc)
-                    print("global max test acc: ", self.global_max_acc)
                     if max_acc > self.global_max_acc:
                         self.global_max_acc = max_acc
+                        print("global max test acc: ", self.global_max_acc)
                         self.save_checkpoints()
 
                 if self.opt.WANDB.OPEN:

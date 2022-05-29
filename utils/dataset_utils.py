@@ -59,7 +59,7 @@ def gen_dataset(data_path, save_path, test_size=0.2, random_seed=22):
     print("test file in ", os.path.join(save_path, "test.list"))
 
 
-def create_dataset(file_list, train=True, batch_size=1, shuffle=True):
+def create_dataset(file_list, size, train=True, batch_size=1, shuffle=True):
     dataset_generator = PetData(file_list)
 
     if shuffle:
@@ -73,15 +73,15 @@ def create_dataset(file_list, train=True, batch_size=1, shuffle=True):
 
     if train:
         trans = [
-            CV.Resize([256, 256]),
-            CV.RandomCrop([224, 224]),
+            CV.Resize([320, 320]),
+            CV.RandomCrop([size, size]),
             CV.Normalize(RGB_mean, RGB_std),
             CV.RandomHorizontalFlip(),
             CV.HWC2CHW()
         ]
     else:
         trans = [
-            CV.Resize([256, 256]),
+            CV.Resize([size, size]),
             CV.Normalize(RGB_mean, RGB_std),
             CV.HWC2CHW()
         ]

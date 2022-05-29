@@ -47,3 +47,10 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     return plt
+
+def extract_features(net, data_path, config, dataset):
+
+    pass
+    return "sbcyc"
+
+

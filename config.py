@@ -20,6 +20,7 @@ _C.TRAIN = CN()
 _C.TRAIN.TRAIN_LIST = "./dataset/train.list"
 _C.TRAIN.TEST_LIST = "./dataset/test.list"
 _C.TRAIN.SAVE_PATH = "./checkpoints"
+_C.TRAIN.FEATURE_PATH = "./checkpoints/features"
 
 
 def get_cfg_defaults():
