@@ -11,7 +11,7 @@ _C.WANDB.LOG_DIR = ""
 _C.WANDB.SWEEP_CONFIG = "./config.json"
 
 _C.MODEL = CN()
-_C.MODEL.NAME = "GoogLeNet"
+_C.MODEL.NAME = "SVM"
 
 _C.DATASET = CN()
 _C.DATASET.NAME = "dogs.vs.cats"

@@ -3,7 +3,13 @@ import itertools
 import matplotlib.pyplot as plt
 import mindspore
 import random
+import os
+import shutil
+from mindspore import Model, load_checkpoint
 from mindspore.common import set_seed
+
+from nets.googlenet import GoogLeNet_backbone
+
 
 def setup_seed(seed):
     np.random.seed(seed)
@@ -48,9 +54,34 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.xlabel('Predicted label')
     return plt
 
-def extract_features(net, data_path, config, dataset):
+# save_path: ./checkpoints/features/train
+# model_name: GoogLeNet
+def extract_features(net, dataset, model_name, save_path, batch_size):
 
-    pass
-    return "sbcyc"
+    features_folder = os.path.join(save_path, model_name + "_" + str(batch_size)+ "_features")
+    if os.path.exists(features_folder):
+        shutil.rmtree(features_folder)
+    os.makedirs(features_folder)
+
+    step_size = dataset.get_dataset_size()
+
+    model = Model(net)
+
+    for i, data in enumerate(dataset.create_dict_iterator()):
+
+        image = data['image']
+        label = data['label']
+
+        features = model.predict(image)
+        # features = image
+
+        features_path = os.path.join(features_folder, f'feature_{i}.npy')
+        label_path = os.path.join(features_folder, f'label_{i}.npy')
+        np.save(features_path, features.asnumpy())
+        np.save(label_path, label.asnumpy())
+
+        print(f"Complete the batch {i + 1}/{step_size}")
+
+    return step_size
 
 

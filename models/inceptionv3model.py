@@ -36,7 +36,7 @@ class InceptionV3Model:
         self.eval_test_iter = self.eval_test_set.create_dict_iterator()
 
         self.net = InceptionV3(2)
-        self.global_max_acc = 0
+        self.global_max_acc = 0.9498
 
 
 

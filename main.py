@@ -5,6 +5,7 @@ import wandb
 from config import get_cfg_defaults
 from models.googlenetmodel import GoogLeNetModel
 from models.inceptionv3model import InceptionV3Model
+from models.svmmodel import SVMModel
 from utils.model_utils import setup_seed
 
 
@@ -33,12 +34,15 @@ if __name__ == "__main__":
     print(cfg)
     print()
 
-    assert cfg.MODEL.NAME.lower() in ["googlenet", "inceptionv3"]
+    assert cfg.MODEL.NAME.lower() in ["googlenet", "inceptionv3", "svm"]
 
     if cfg.MODEL.NAME.lower() == "googlenet":
         trainer = GoogLeNetModel(cfg)
 
     elif cfg.MODEL.NAME.lower() == "inceptionv3":
         trainer = InceptionV3Model(cfg)
+
+    elif cfg.MODEL.NAME.lower() == "svm":
+        trainer = SVMModel(cfg)
 
     trainer.sweep()

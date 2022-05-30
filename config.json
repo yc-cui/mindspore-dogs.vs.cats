@@ -43,10 +43,9 @@
         },
         "lr": {
           "values": [
-            0.001,
-            0.005,
-            0.0005,
-            0.0001
+            0.0001,
+            0.0002,
+            0.0003
           ]
         },
         "batch_size": {
@@ -61,7 +60,7 @@
   },
   "svm": {
     "sweep_config": {
-      "method": "grid",
+      "method": "bayes",
       "metric": {
         "name": "max test acc",
         "goal": "maximize"
@@ -69,32 +68,28 @@
       "parameters": {
         "input": {
           "values": [
-            "pca",
-            "googlenet",
-            "inceptionv3"
+            "origin",
+            "GoogLeNet",
+            "InceptionV3"
           ]
         },
-        "batch_size": {
-          "values": [
-            32,
-            16,
-            8
-          ]
+        "n_components": {
+          "min": 2,
+          "max": 128
         },
         "kernel": {
           "values": [
-            128,
-            256,
-            512
+            "RBF",
+            "Nystroem"
           ]
         },
+        "gamma": {
+          "min": 0.01,
+          "max": 10.0
+        },
         "C": {
-          "values": [
-            0.2,
-            0.3,
-            0.4,
-            0.5
-          ]
+          "min": 0.0001,
+          "max": 100.0
         }
       }
     }
