@@ -96,5 +96,45 @@ def create_dataset(file_list, size, train=True, batch_size=1, shuffle=True):
     return dataset
 
 
+def create_dataset_aug(file_list, size, train=True, batch_size=1, shuffle=True):
+    dataset_generator = PetData(file_list)
+
+    if shuffle:
+        cores = max(min(multiprocessing.cpu_count(), 8), 1)
+        dataset = ds.GeneratorDataset(dataset_generator, ["image", "label"], shuffle=True, num_parallel_workers=cores)
+    else:
+        dataset = ds.GeneratorDataset(dataset_generator, ["image", "label"], shuffle=False, num_parallel_workers=1)
+
+    RGB_mean = [124.479, 116.011, 106.281]
+    RGB_std = [66.734, 65.031, 65.683]
+
+    if train:
+        trans = [
+            CV.Resize([320, 320]),
+            CV.RandomCrop([size, size]),
+            CV.RandomColorAdjust(0.4, 0.4, 0.4, 0.1),
+            CV.RandomRotation(degrees=5),
+            CV.Normalize(RGB_mean, RGB_std),
+            CV.RandomHorizontalFlip(),
+            CV.RandomVerticalFlip(),
+            CV.HWC2CHW()
+        ]
+    else:
+        trans = [
+            CV.Resize([size, size]),
+            CV.Normalize(RGB_mean, RGB_std),
+            CV.HWC2CHW()
+        ]
+
+    typecast_op = C.TypeCast(mstype.int32)
+
+    dataset = dataset.map(input_columns='label', operations=typecast_op)
+    dataset = dataset.map(input_columns='image', operations=trans)
+
+    dataset = dataset.batch(batch_size, drop_remainder=False)
+
+    return dataset
+
+
 if __name__ == '__main__':
     gen_dataset("/root/autodl-tmp/PycharmProjects/code/dataset/train", "../dataset")

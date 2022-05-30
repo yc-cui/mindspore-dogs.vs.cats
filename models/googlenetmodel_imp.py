@@ -3,9 +3,12 @@ import random
 import wandb
 import json
 import numpy as np
-from mindspore import nn, load_checkpoint
+from mindspore import nn, load_checkpoint, load_param_into_net
 from sklearn.metrics import accuracy_score
-from mindspore import context, save_checkpoint
+from mindspore import context, save_checkpoint, Tensor
+from mindspore.nn import FocalLoss
+from utils.loss_utils import CrossEntropySmooth
+from utils.lr_utils import get_lr
 from utils.model_utils import setup_seed
 from tqdm import tqdm
 from nets.googlenet import GoogLeNet
@@ -35,7 +38,17 @@ class GoogLeNetModel_imp:
         self.eval_train_set_iter = self.eval_train_set.create_dict_iterator()
         self.eval_test_iter = self.eval_test_set.create_dict_iterator()
 
+        param_dict = load_checkpoint(self.opt.TRAIN.GOOGLENET_PRETRAINED)
+        param_dict_my = load_checkpoint("./checkpoints/model_GoogLeNet_best_param.ckpt")
+        backbone_list = list(filter(lambda x: "backbone" in x, param_dict_my.keys()))
+        backbone_list = list(map(lambda x: x[9:], backbone_list))
+        backbone_dict = dict(filter(lambda x: x[0] in backbone_list, param_dict.items()))
+        backbone_dict = dict(zip(map(lambda x: "backbone." + x, backbone_dict.keys()), map(lambda x: x, backbone_dict.values())))
+
         self.net = GoogLeNet(2)
+        load_checkpoint("./checkpoints/model_GoogLeNet_best_param.ckpt", self.net)
+        load_param_into_net(self.net, backbone_dict)
+
         self.global_max_acc = 0
 
 
@@ -53,24 +66,16 @@ class GoogLeNetModel_imp:
 
             num_epoch = self.opt.TRAIN.NUM_EPOCH
 
-            init_weights_path = './checkpoints/init_{}.ckpt'.format(self.model_name)
-            if os.path.exists(init_weights_path):
-                print("loading existed initial weights [  {}  ] to net...".format(init_weights_path))
-                load_checkpoint(init_weights_path, net=self.net)
-            else:
-                print("saving initial weights [  {}  ] from net...".format(init_weights_path))
-                save_checkpoint(self.net, init_weights_path)
-
-            loss = nn.loss.SoftmaxCrossEntropyWithLogits(sparse=True, reduction='mean')
-            opt = self.build_optim(config["optimizer"], config["lr"])
-            network = nn.WithLossCell(self.net, loss)
-            network = nn.TrainOneStepCell(network, opt)
-
             batch_size = config["batch_size"]
             assert batch_size in [8, 16, 32]
 
             train_set = self.train_set_dict[batch_size]
+
             train_set_iter = self.train_set_iter_dict[batch_size]
+            loss = self.build_loss(config["loss"])
+            opt = self.build_optim(config["optimizer"], config["lr"], train_set.get_dataset_size())
+            network = nn.WithLossCell(self.net, loss)
+            network = nn.TrainOneStepCell(network, opt)
 
             max_acc = 0
 
@@ -110,7 +115,7 @@ class GoogLeNetModel_imp:
         with open(self.opt.WANDB.SWEEP_CONFIG, encoding="utf-8") as f:
             self.sweep_config = json.load(f)
         f.close()
-        sweep_id = wandb.sweep(self.sweep_config["googlenet"]["sweep_config"], project=self.opt.WANDB.PROJECT_NAME)
+        sweep_id = wandb.sweep(self.sweep_config["googlenet_imp"]["sweep_config"], project=self.opt.WANDB.PROJECT_NAME)
         wandb.agent(sweep_id, self.run_sweep)
 
     def eval(self, data_iter):
@@ -125,20 +130,39 @@ class GoogLeNetModel_imp:
         test_acc = accuracy_score(y_pred, y_test)
         return test_acc
 
-    def build_optim(self, optim, lr):
+    def build_optim(self, optim, lr, steps_per_epoch):
 
         optimizer = None
+        dy_lr = []
 
+        if lr == "steps":
+            dy_lr = get_lr(2e-4, 5e-5, 1e-3, 3, 20, steps_per_epoch, "steps")
+        elif lr== "exponential":
+            dy_lr = get_lr(2e-4, 5e-5, 1e-3, 3, 20, steps_per_epoch, "steps_decay")
+        elif lr == "cosine":
+            dy_lr = get_lr(2e-4, 5e-5, 1e-3, 3, 20, steps_per_epoch, "cosine")
+        elif lr == "linear":
+            dy_lr = get_lr(2e-4, 5e-5, 1e-3, 3, 20, steps_per_epoch, "linear")
+
+        dy_lr = Tensor(dy_lr)
         if optim == "sgd":
-            optimizer = nn.SGD(self.net.trainable_params(), lr)
+            optimizer = nn.SGD(self.net.trainable_params(), dy_lr)
         elif optim == "adam":
-            optimizer = nn.Adam(self.net.trainable_params(), lr)
+            optimizer = nn.Adam(self.net.trainable_params(), dy_lr)
         elif optim == "adagrad":
-            optimizer = nn.Adagrad(self.net.trainable_params(), lr)
+            optimizer = nn.Adagrad(self.net.trainable_params(), dy_lr)
         elif optim == "momentum":
-            optimizer = nn.Momentum(self.net.trainable_params(), lr, momentum=0.9)
+            optimizer = nn.Momentum(self.net.trainable_params(), dy_lr, momentum=0.9)
 
         return optimizer
+
+
+    def build_loss(self, loss_name):
+        name = loss_name.split("_")[0]
+        val = float(loss_name.split("_")[1])
+        loss = FocalLoss(gamma=val) if name == "focal" else CrossEntropySmooth(smooth_factor=val, num_classes=2)
+        return loss
+
 
     def save_checkpoints(self):
         save_checkpoint(self.net, os.path.join(self.opt.TRAIN.SAVE_PATH, self.model_name + '_best_param.ckpt'))
