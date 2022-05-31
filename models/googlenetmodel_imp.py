@@ -12,7 +12,7 @@ from utils.lr_utils import get_lr
 from utils.model_utils import setup_seed
 from tqdm import tqdm
 from nets.googlenet import GoogLeNet
-from utils.dataset_utils import create_dataset
+from utils.dataset_utils import create_dataset, create_dataset_aug
 import os
 
 # os.environ["WANDB_CONSOLE"] = "off"
@@ -30,11 +30,11 @@ class GoogLeNetModel_imp:
         self.model_name = "model_{}".format(self.opt.MODEL.NAME)
 
         batch_list = [8, 16, 32]
-        self.train_set_dict = {i: create_dataset(self.opt.TRAIN.TRAIN_LIST, 224, train=True, batch_size=i, shuffle=False) for i in batch_list}
+        self.train_set_dict = {i: create_dataset_aug(self.opt.TRAIN.TRAIN_LIST, 224, train=True, batch_size=i, shuffle=False) for i in batch_list}
         self.train_set_iter_dict = {k: v.create_dict_iterator() for k, v in self.train_set_dict.items()}
 
-        self.eval_train_set = create_dataset(self.opt.TRAIN.TRAIN_LIST, 224, train=False, batch_size=64, shuffle=False)
-        self.eval_test_set = create_dataset(self.opt.TRAIN.TEST_LIST, 224, train=False, batch_size=64, shuffle=False)
+        self.eval_train_set = create_dataset_aug(self.opt.TRAIN.TRAIN_LIST, 224, train=False, batch_size=64, shuffle=False)
+        self.eval_test_set = create_dataset_aug(self.opt.TRAIN.TEST_LIST, 224, train=False, batch_size=64, shuffle=False)
         self.eval_train_set_iter = self.eval_train_set.create_dict_iterator()
         self.eval_test_iter = self.eval_test_set.create_dict_iterator()
 
@@ -44,12 +44,15 @@ class GoogLeNetModel_imp:
         backbone_list = list(map(lambda x: x[9:], backbone_list))
         backbone_dict = dict(filter(lambda x: x[0] in backbone_list, param_dict.items()))
         backbone_dict = dict(zip(map(lambda x: "backbone." + x, backbone_dict.keys()), map(lambda x: x, backbone_dict.values())))
+        # for v in backbone_dict.values():
+        #     v.requires_grad = False
 
         self.net = GoogLeNet(2)
+
         load_checkpoint("./checkpoints/model_GoogLeNet_best_param.ckpt", self.net)
         load_param_into_net(self.net, backbone_dict)
 
-        self.global_max_acc = 0
+        self.global_max_acc = 0.9868
 
 
 
@@ -62,7 +65,8 @@ class GoogLeNetModel_imp:
                         resume=self.opt.WANDB.RESUME,
                         ) as run:
             config = wandb.config
-            wandb.run.name = "_".join([self.model_name, config["optimizer"], str(config["lr"]), str(config["batch_size"])])
+            wandb.run.name = "_".join([self.model_name, config["optimizer"], config["lr"],
+                                       str(config["batch_size"]), config["loss"]])
 
             num_epoch = self.opt.TRAIN.NUM_EPOCH
 
@@ -136,21 +140,19 @@ class GoogLeNetModel_imp:
         dy_lr = []
 
         if lr == "steps":
-            dy_lr = get_lr(2e-4, 5e-5, 1e-3, 3, 20, steps_per_epoch, "steps")
+            dy_lr = get_lr(2e-5, 5e-6, 5e-5, 0, 20, steps_per_epoch, "steps")
         elif lr== "exponential":
-            dy_lr = get_lr(2e-4, 5e-5, 1e-3, 3, 20, steps_per_epoch, "steps_decay")
+            dy_lr = get_lr(2e-5, 5e-6, 5e-5, 0, 20, steps_per_epoch, "steps_decay")
         elif lr == "cosine":
-            dy_lr = get_lr(2e-4, 5e-5, 1e-3, 3, 20, steps_per_epoch, "cosine")
+            dy_lr = get_lr(2e-5, 5e-6, 5e-5, 0, 20, steps_per_epoch, "cosine")
         elif lr == "linear":
-            dy_lr = get_lr(2e-4, 5e-5, 1e-3, 3, 20, steps_per_epoch, "linear")
+            dy_lr = get_lr(2e-5, 5e-6, 5e-5, 0, 20, steps_per_epoch, "linear")
 
         dy_lr = Tensor(dy_lr)
         if optim == "sgd":
             optimizer = nn.SGD(self.net.trainable_params(), dy_lr)
         elif optim == "adam":
             optimizer = nn.Adam(self.net.trainable_params(), dy_lr)
-        elif optim == "adagrad":
-            optimizer = nn.Adagrad(self.net.trainable_params(), dy_lr)
         elif optim == "momentum":
             optimizer = nn.Momentum(self.net.trainable_params(), dy_lr, momentum=0.9)
 

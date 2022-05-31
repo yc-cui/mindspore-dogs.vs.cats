@@ -105,8 +105,11 @@ def create_dataset_aug(file_list, size, train=True, batch_size=1, shuffle=True):
     else:
         dataset = ds.GeneratorDataset(dataset_generator, ["image", "label"], shuffle=False, num_parallel_workers=1)
 
-    RGB_mean = [124.479, 116.011, 106.281]
-    RGB_std = [66.734, 65.031, 65.683]
+    # RGB_mean = [124.479, 116.011, 106.281]
+    # RGB_std = [66.734, 65.031, 65.683]
+
+    RGB_mean =[123.675, 116.28, 103.53]
+    RGB_std = [58.395, 57.12, 57.375]
 
     if train:
         trans = [

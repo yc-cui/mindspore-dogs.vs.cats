@@ -12,7 +12,7 @@ from utils.model_utils import setup_seed
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--model", "-m", default="GoogLeNet")
+parser.add_argument("--model", "-m", default="GoogLeNet_imp")
 # parser.add_argument("--learning_rate", "-l", default=0.001, type=float)
 # parser.add_argument("--hidden", "-hd", default=256, type=int)
 # parser.add_argument("--batchsize", "-b", default=512, type=int)

@@ -108,7 +108,7 @@
             "steps",
             "exponential",
             "cosine",
-            "liner"
+            "linear"
           ]
         },
         "batch_size": {
@@ -122,15 +122,14 @@
           "values": [
             "adam",
             "sgd",
-            "adagrad",
             "momentum"
           ]
         },
         "loss": {
           "values": [
             "smooth_0.1",
-            "smooth_0.2",
             "focal_1.5",
+            "smooth_0.2",
             "focal_2",
             "focal_2.5"
           ]
