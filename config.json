@@ -103,6 +103,12 @@
         "goal": "maximize"
       },
       "parameters": {
+        "pretrained:": {
+          "values": [
+            false,
+            true
+          ]
+        },
         "lr": {
           "values": [
             "steps",

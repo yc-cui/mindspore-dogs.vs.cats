@@ -43,14 +43,13 @@ class GoogLeNetModel_imp:
         backbone_list = list(filter(lambda x: "backbone" in x, param_dict_my.keys()))
         backbone_list = list(map(lambda x: x[9:], backbone_list))
         backbone_dict = dict(filter(lambda x: x[0] in backbone_list, param_dict.items()))
-        backbone_dict = dict(zip(map(lambda x: "backbone." + x, backbone_dict.keys()), map(lambda x: x, backbone_dict.values())))
+        self.backbone_dict = dict(zip(map(lambda x: "backbone." + x, backbone_dict.keys()), map(lambda x: x, backbone_dict.values())))
         # for v in backbone_dict.values():
         #     v.requires_grad = False
 
         self.net = GoogLeNet(2)
 
-        load_checkpoint("./checkpoints/model_GoogLeNet_best_param.ckpt", self.net)
-        load_param_into_net(self.net, backbone_dict)
+
 
         self.global_max_acc = 0.9868
 
@@ -69,6 +68,18 @@ class GoogLeNetModel_imp:
                                        str(config["batch_size"]), config["loss"]])
 
             num_epoch = self.opt.TRAIN.NUM_EPOCH
+
+            if config["pretrained"]:
+                load_checkpoint("./checkpoints/model_GoogLeNet_best_param.ckpt", self.net)
+                load_param_into_net(self.net, self.backbone_dict)
+            else:
+                init_weights_path = './checkpoints/init_{}.ckpt'.format(self.model_name)
+                if os.path.exists(init_weights_path):
+                    print("loading existed initial weights [  {}  ] to net...".format(init_weights_path))
+                    load_checkpoint(init_weights_path, net=self.net)
+                else:
+                    print("saving initial weights [  {}  ] from net...".format(init_weights_path))
+                    save_checkpoint(self.net, init_weights_path)
 
             batch_size = config["batch_size"]
             assert batch_size in [8, 16, 32]
