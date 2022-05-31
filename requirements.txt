@@ -1,0 +1,5 @@
+yacs==0.1.8
+wandb==0.12.16
+tqdm==4.64.0
+scikit-learn==1.0.2
+mindspore-gpu ==1.6.1
