@@ -70,6 +70,7 @@ class GoogLeNetModel_imp:
             num_epoch = self.opt.TRAIN.NUM_EPOCH
 
             if config["pretrained"]:
+                wandb.run.name += "_pretrained"
                 load_checkpoint("./checkpoints/model_GoogLeNet_best_param.ckpt", self.net)
                 load_param_into_net(self.net, self.backbone_dict)
             else:

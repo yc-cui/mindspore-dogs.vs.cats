@@ -103,7 +103,7 @@
         "goal": "maximize"
       },
       "parameters": {
-        "pretrained:": {
+        "pretrained": {
           "values": [
             false,
             true
